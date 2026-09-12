@@ -1108,10 +1108,10 @@ navigationItems.forEach(
    ========================= */
 
 function escapeHtml(
-  value: string
+  value: string | null | undefined
 ): string {
 
-  return value
+  return (value ?? "")
     .replaceAll(
       "&",
       "&amp;"
@@ -1136,7 +1136,7 @@ function escapeHtml(
 
 
 function escapeAttribute(
-  value: string
+  value: string | null | undefined
 ): string {
 
   return escapeHtml(
@@ -1144,6 +1144,7 @@ function escapeAttribute(
   );
 
 }
+
 
 
 /* =========================

@@ -2,23 +2,23 @@ export interface Match {
   id: number;
 
   fullname: string;
-  firstname: string;
-  middlename: string;
-  lastname: string;
-  ancestralsurname: string;
+  firstname: string | null;
+  middlename: string | null;
+  lastname: string | null;
+  ancestralsurname: string | null;
 
-  ydnahaplogroup: string;
-  ydnasubclade: string;
-  mtdna: string;
+  ydnahaplogroup: string | null;
+  ydnasubclade: string | null;
+  mtdna: string | null;
 
-  pays: string;
-  region: string;
-  province: string;
-  commun: string;
-  tribe: string;
+  pays: string | null;
+  region: string | null;
+  province: string | null;
+  commun: string | null;
+  tribe: string | null;
 
-  details: string;
+  details: string | null;
 
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
