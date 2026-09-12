@@ -5,25 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>DNA Matches</title>
-
-  <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
 
   <div id="app">
-    <h1>DNA Matches</h1>
-    <p>Application de gestion des DNA Matches</p>
 
-    <button id="testButton">
-      Test Application
-    </button>
+    <aside class="sidebar">
+
+      <div class="logo">
+        <h1>DNA MATCHES</h1>
+        <span>DNA Management</span>
+      </div>
+
+      <nav class="navigation">
+
+        <button class="nav-item active" data-page="dashboard">
+          Dashboard
+        </button>
+
+        <button class="nav-item" data-page="matches">
+          Matches
+        </button>
+
+      </nav>
+
+    </aside>
+
+
+    <main class="main">
+
+      <header class="topbar">
+
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+
+          <p id="pageDescription">
+            Overview of your DNA matches
+          </p>
+        </div>
+
+      </header>
+
+
+      <section id="pageContent" class="content">
+
+      </section>
+
+    </main>
+
   </div>
 
-  <!-- Neutralino -->
+
   <script src="/resources/js/neutralino.js"></script>
 
-  <!-- TypeScript -->
   <script type="module" src="./main.ts"></script>
 
 </body>
