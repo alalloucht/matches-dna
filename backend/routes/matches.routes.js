@@ -7,11 +7,17 @@ const {
   getMatchById,
   createMatch,
   updateMatch,
-  deleteMatch
+  deleteMatch,
+  getMatchStats,
+  getRecentMatches
 } = require("../controllers/matches.controller");
 
 // GET /matches
 router.get("/", getMatches);
+
+router.get("/stats", getMatchStats);
+router.get("/recent", getRecentMatches);
+
 
 // GET /matches/:id
 router.get("/:id", getMatchById);
@@ -24,5 +30,6 @@ router.put("/:id", updateMatch);
 
 // DELETE /matches/:id
 router.delete("/:id", deleteMatch);
+
 
 module.exports = router;

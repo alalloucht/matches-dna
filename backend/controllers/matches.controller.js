@@ -859,6 +859,70 @@ async function deleteMatch(req, res) {
 }
 
 
+async function getMatchStats(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        COUNT(*) AS totalMatches,
+        COUNT(DISTINCT NULLIF(TRIM(pays), '')) AS countries,
+        COUNT(DISTINCT NULLIF(TRIM(region), '')) AS regions,
+        COUNT(DISTINCT NULLIF(TRIM(ydnahaplogroup), '')) AS ydnaHaplogroups,
+        COUNT(DISTINCT NULLIF(TRIM(mtdna), '')) AS mtdnaHaplogroups
+      FROM result
+    `);
+
+    res.json(rows[0]);
+
+  } catch (error) {
+    console.error("Get match stats error:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch match statistics"
+    });
+  }
+}
+
+
+async function getRecentMatches(req, res) {
+  try {
+    let limit = Number.parseInt(req.query.limit, 10);
+
+    if (!Number.isInteger(limit) || limit <= 0) {
+      limit = 10;
+    }
+
+    if (limit > 50) {
+      limit = 50;
+    }
+
+    const [rows] = await pool.query(`
+      SELECT
+        id,
+        fullname,
+        ydnahaplogroup,
+        ydnasubclade,
+        mtdna,
+        pays,
+        region,
+        createdAt,
+        updatedAt
+      FROM result
+      ORDER BY id DESC
+      LIMIT ?
+    `, [limit]);
+
+    res.json(rows);
+
+  } catch (error) {
+    console.error("Get recent matches error:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch recent matches"
+    });
+  }
+}
+
+
 // ============================================================
 // EXPORTS
 // ============================================================
@@ -869,6 +933,7 @@ module.exports = {
   getMatchById,
   createMatch,
   updateMatch,
-  deleteMatch
-
+  deleteMatch,
+  getMatchStats,
+  getRecentMatches
 };
