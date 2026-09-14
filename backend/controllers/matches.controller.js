@@ -863,21 +863,40 @@ async function getMatchStats(req, res) {
   try {
     const [rows] = await pool.query(`
       SELECT
-        COUNT(*) AS totalMatches,
-        COUNT(DISTINCT NULLIF(TRIM(pays), '')) AS countries,
-        COUNT(DISTINCT NULLIF(TRIM(region), '')) AS regions,
-        COUNT(DISTINCT NULLIF(TRIM(ydnahaplogroup), '')) AS ydnaHaplogroups,
-        COUNT(DISTINCT NULLIF(TRIM(mtdna), '')) AS mtdnaHaplogroups
+        COUNT(*) AS total,
+
+        SUM(
+          createdAt >= CURDATE()
+        ) AS today,
+
+        SUM(
+          createdAt >= DATE_SUB(
+            CURDATE(),
+            INTERVAL WEEKDAY(CURDATE()) DAY
+          )
+        ) AS thisWeek,
+
+        SUM(
+          createdAt >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+        ) AS thisMonth
+
       FROM result
     `);
 
-    res.json(rows[0]);
+    const row = rows[0];
+
+    res.json({
+      total: Number(row.total || 0),
+      today: Number(row.today || 0),
+      thisWeek: Number(row.thisWeek || 0),
+      thisMonth: Number(row.thisMonth || 0)
+    });
 
   } catch (error) {
-    console.error("Get match stats error:", error);
+    console.error("getMatchStats error:", error);
 
     res.status(500).json({
-      message: "Failed to fetch match statistics"
+      error: "Failed to fetch match statistics"
     });
   }
 }
@@ -885,39 +904,55 @@ async function getMatchStats(req, res) {
 
 async function getRecentMatches(req, res) {
   try {
-    let limit = Number.parseInt(req.query.limit, 10);
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
 
-    if (!Number.isInteger(limit) || limit <= 0) {
-      limit = 10;
-    }
+    const limit = Math.min(
+      Math.max(
+        Number.isNaN(requestedLimit) ? 10 : requestedLimit,
+        1
+      ),
+      100
+    );
 
-    if (limit > 50) {
-      limit = 50;
-    }
-
-    const [rows] = await pool.query(`
+    const [rows] = await pool.query(
+      `
       SELECT
         id,
         fullname,
+        firstname,
+        middlename,
+        lastname,
+        ancestralsurname,
         ydnahaplogroup,
         ydnasubclade,
         mtdna,
         pays,
         region,
+        province,
+        commun,
+        tribe,
+        details,
         createdAt,
         updatedAt
-      FROM result
-      ORDER BY id DESC
-      LIMIT ?
-    `, [limit]);
 
-    res.json(rows);
+      FROM result
+
+      ORDER BY createdAt DESC, id DESC
+
+      LIMIT ?
+      `,
+      [limit]
+    );
+
+    res.json({
+      data: rows
+    });
 
   } catch (error) {
-    console.error("Get recent matches error:", error);
+    console.error("getRecentMatches error:", error);
 
     res.status(500).json({
-      message: "Failed to fetch recent matches"
+      error: "Failed to fetch recent matches"
     });
   }
 }

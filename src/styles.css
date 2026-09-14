@@ -336,6 +336,71 @@ button:disabled {
    DASHBOARD
    ========================================================= */
 
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+
+/* =========================================================
+   DASHBOARD STATISTICS
+   ========================================================= */
+
+.dashboard-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 20px;
+}
+
+.dashboard-card {
+  padding: 24px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e5e5;
+
+  border-radius: 10px;
+
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+
+  transform: translateY(-1px);
+}
+
+.dashboard-card-title {
+  display: block;
+
+  color: #777;
+
+  font-size: 14px;
+}
+
+.dashboard-card-value {
+  display: block;
+
+  margin-top: 10px;
+
+  font-size: 30px;
+  font-weight: 600;
+
+  color: #222;
+}
+
+
+/* =========================================================
+   OLD DASHBOARD CLASSES
+   Keep compatibility with existing main.ts
+   ========================================================= */
+
 .stats-grid {
   display: grid;
 
@@ -380,6 +445,185 @@ button:disabled {
 
   font-size: 30px;
   font-weight: 600;
+}
+
+
+/* =========================================================
+   DASHBOARD STATUS
+   ========================================================= */
+
+.dashboard-status-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 20px;
+}
+
+.dashboard-status-card {
+  padding: 20px 24px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e5e5;
+
+  border-radius: 10px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.dashboard-status-label {
+  display: block;
+
+  color: #777;
+
+  font-size: 13px;
+}
+
+.dashboard-status-value {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-top: 7px;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #333;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+
+  flex-shrink: 0;
+
+  display: inline-block;
+
+  border-radius: 50%;
+
+  background: #2e7d32;
+}
+
+
+/* =========================================================
+   DASHBOARD SECTION
+   ========================================================= */
+
+.dashboard-section {
+  width: 100%;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e5e5;
+
+  border-radius: 10px;
+
+  overflow: hidden;
+}
+
+.dashboard-section-header {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 18px 20px;
+
+  border-bottom: 1px solid #eee;
+}
+
+.dashboard-section-header h3 {
+  margin: 0;
+
+  font-size: 16px;
+
+  font-weight: 600;
+
+  color: #222;
+}
+
+.dashboard-section-header span {
+  color: #777;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   DASHBOARD RECENT TABLE
+   ========================================================= */
+
+.dashboard-recent-table {
+  width: 100%;
+
+  min-width: 850px;
+
+  border-collapse: collapse;
+
+  background: #ffffff;
+}
+
+.dashboard-recent-table th,
+.dashboard-recent-table td {
+  padding: 13px 16px;
+
+  text-align: left;
+
+  border-bottom: 1px solid #eee;
+
+  white-space: nowrap;
+}
+
+.dashboard-recent-table th {
+  background: #f8f8f8;
+
+  color: #666;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+.dashboard-recent-table td {
+  font-size: 13px;
+
+  color: #333;
+}
+
+.dashboard-recent-table tbody tr {
+  transition: background 0.1s ease;
+}
+
+.dashboard-recent-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.dashboard-recent-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+
+/* =========================================================
+   DASHBOARD RECENT TABLE WRAPPER
+   ========================================================= */
+
+.dashboard-section .table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
 }
 
 
@@ -969,6 +1213,11 @@ tbody tr:last-child td {
     padding: 24px;
   }
 
+  .dashboard-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
   .stats-grid {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
@@ -1013,6 +1262,10 @@ tbody tr:last-child td {
   .search-row .primary-button,
   .search-row .secondary-button {
     width: 100%;
+  }
+
+  .dashboard-status-grid {
+    grid-template-columns: 1fr;
   }
 
   .form-grid {
@@ -1074,6 +1327,10 @@ tbody tr:last-child td {
     padding: 15px;
   }
 
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
@@ -1109,6 +1366,10 @@ tbody tr:last-child td {
   .form-card {
     padding: 18px;
   }
+
+  .dashboard-section {
+    overflow-x: auto;
+  }
 }
 
 
@@ -1127,6 +1388,14 @@ tbody tr:last-child td {
 
   .page-header h2 {
     font-size: 20px;
+  }
+
+  .dashboard-card-value {
+    font-size: 26px;
+  }
+
+  .stat-value {
+    font-size: 26px;
   }
 
   .pagination-button {

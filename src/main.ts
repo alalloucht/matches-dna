@@ -8,6 +8,8 @@ import {
   createMatch,
   updateMatch,
   deleteMatch,
+  getMatchStats,
+  getRecentMatches,
   type MatchFilters,
 } from "./services/matchService";
 
@@ -89,6 +91,54 @@ function escapeAttribute(
 
 
 // ============================================================
+// DATE HELPERS
+// ============================================================
+
+function formatDate(
+  value: string
+): string {
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return value;
+
+  }
+
+  return date.toLocaleString(
+    undefined,
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+
+}
+
+
+// ============================================================
+// NUMBER HELPERS
+// ============================================================
+
+function formatNumber(
+  value: number
+): string {
+
+  return value.toLocaleString();
+
+}
+
+
+// ============================================================
 // LOADING
 // ============================================================
 
@@ -137,7 +187,9 @@ async function renderDashboard(): Promise<void> {
     !pageDescription ||
     !pageContent
   ) {
+
     return;
+
   }
 
 
@@ -154,22 +206,31 @@ async function renderDashboard(): Promise<void> {
 
   try {
 
-    /*
-     * Only request one record.
-     *
-     * We use pagination.total
-     * to know the total number.
-     */
+    // ========================================================
+    // LOAD DASHBOARD DATA
+    // ========================================================
 
-    const result =
-      await getMatches(1, 1);
+    const [
+      stats,
+      recentMatches,
+    ] = await Promise.all([
+
+      getMatchStats(),
+
+      getRecentMatches(10),
+
+    ]);
 
 
-    const total =
-      result.pagination.total;
-
+    // ========================================================
+    // DASHBOARD HTML
+    // ========================================================
 
     pageContent.innerHTML = `
+
+      <!-- ================================================= -->
+      <!-- PAGE HEADER -->
+      <!-- ================================================= -->
 
       <div class="page-header">
 
@@ -188,8 +249,14 @@ async function renderDashboard(): Promise<void> {
       </div>
 
 
+      <!-- ================================================= -->
+      <!-- STATISTICS -->
+      <!-- ================================================= -->
+
       <div class="dashboard-grid">
 
+
+        <!-- TOTAL -->
 
         <div class="dashboard-card">
 
@@ -198,32 +265,89 @@ async function renderDashboard(): Promise<void> {
           </div>
 
           <div class="dashboard-card-value">
-            ${total.toLocaleString()}
+            ${formatNumber(stats.total)}
           </div>
 
         </div>
 
 
+        <!-- TODAY -->
+
         <div class="dashboard-card">
 
           <div class="dashboard-card-title">
+            Added Today
+          </div>
+
+          <div class="dashboard-card-value">
+            ${formatNumber(stats.today)}
+          </div>
+
+        </div>
+
+
+        <!-- THIS WEEK -->
+
+        <div class="dashboard-card">
+
+          <div class="dashboard-card-title">
+            Added This Week
+          </div>
+
+          <div class="dashboard-card-value">
+            ${formatNumber(stats.thisWeek)}
+          </div>
+
+        </div>
+
+
+        <!-- THIS MONTH -->
+
+        <div class="dashboard-card">
+
+          <div class="dashboard-card-title">
+            Added This Month
+          </div>
+
+          <div class="dashboard-card-value">
+            ${formatNumber(stats.thisMonth)}
+          </div>
+
+        </div>
+
+
+      </div>
+
+
+      <!-- ================================================= -->
+      <!-- DATABASE / API STATUS -->
+      <!-- ================================================= -->
+
+      <div class="dashboard-status-grid">
+
+
+        <div class="dashboard-status-card">
+
+          <div class="dashboard-status-label">
             Database
           </div>
 
-          <div class="dashboard-card-value">
-            MySQL
+          <div class="dashboard-status-value">
+            <span class="status-dot"></span>
+            MySQL Connected
           </div>
 
         </div>
 
 
-        <div class="dashboard-card">
+        <div class="dashboard-status-card">
 
-          <div class="dashboard-card-title">
+          <div class="dashboard-status-label">
             API
           </div>
 
-          <div class="dashboard-card-value">
+          <div class="dashboard-status-value">
+            <span class="status-dot"></span>
             Online
           </div>
 
@@ -232,7 +356,133 @@ async function renderDashboard(): Promise<void> {
 
       </div>
 
+
+      <!-- ================================================= -->
+      <!-- RECENT MATCHES -->
+      <!-- ================================================= -->
+
+      <div class="dashboard-section">
+
+
+        <div class="dashboard-section-header">
+
+          <div>
+
+            <h3>
+              Recent Matches
+            </h3>
+
+            <p>
+              Latest matches added to the database.
+            </p>
+
+          </div>
+
+
+          <button
+            id="viewAllMatchesButton"
+            class="secondary-button"
+            type="button"
+          >
+            View All Matches
+          </button>
+
+        </div>
+
+
+        ${
+          recentMatches.length === 0
+
+            ? `
+
+              <div class="empty-state">
+
+                No recent matches found.
+
+              </div>
+
+            `
+
+            : `
+
+              <div class="table-container">
+
+                <table class="matches-table dashboard-recent-table">
+
+                  <thead>
+
+                    <tr>
+
+                      <th>ID</th>
+
+                      <th>Full Name</th>
+
+                      <th>Y-DNA</th>
+
+                      <th>Y-DNA Subclade</th>
+
+                      <th>mtDNA</th>
+
+                      <th>Country</th>
+
+                      <th>Created</th>
+
+                    </tr>
+
+                  </thead>
+
+
+                  <tbody>
+
+                    ${recentMatches
+                      .map(
+                        renderRecentMatchRow
+                      )
+                      .join("")}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            `
+
+        }
+
+
+      </div>
+
     `;
+
+
+    // ========================================================
+    // VIEW ALL MATCHES
+    // ========================================================
+
+    const viewAllButton =
+      document.getElementById(
+        "viewAllMatchesButton"
+      );
+
+
+    viewAllButton?.addEventListener(
+      "click",
+      async () => {
+
+        activateNavigation(
+          "matches"
+        );
+
+        currentMatchesPage = 1;
+
+        await renderMatches(
+          1
+        );
+
+      }
+    );
+
 
   } catch (error) {
 
@@ -254,6 +504,71 @@ async function renderDashboard(): Promise<void> {
 
 
 // ============================================================
+// RECENT MATCH ROW
+// ============================================================
+
+function renderRecentMatchRow(
+  match: Match
+): string {
+
+  return `
+
+    <tr>
+
+      <td>
+        ${match.id}
+      </td>
+
+
+      <td>
+        ${escapeHtml(
+          match.fullname
+        )}
+      </td>
+
+
+      <td>
+        ${escapeHtml(
+          match.ydnahaplogroup
+        )}
+      </td>
+
+
+      <td>
+        ${escapeHtml(
+          match.ydnasubclade
+        )}
+      </td>
+
+
+      <td>
+        ${escapeHtml(
+          match.mtdna
+        )}
+      </td>
+
+
+      <td>
+        ${escapeHtml(
+          match.pays
+        )}
+      </td>
+
+
+      <td>
+        ${formatDate(
+          match.createdAt ?? ""
+        )}
+      </td>
+
+    </tr>
+
+  `;
+
+}
+
+
+// ============================================================
 // MATCHES PAGE
 // ============================================================
 
@@ -266,7 +581,9 @@ async function renderMatches(
     !pageDescription ||
     !pageContent
   ) {
+
     return;
+
   }
 
 
@@ -717,6 +1034,7 @@ function renderSearchAndFilters(): string {
     </div>
 
   `;
+
 }
 
 
@@ -797,11 +1115,9 @@ function applyFilters(): void {
   };
 
 
-  /*
-   * Remove empty values.
-   *
-   * This keeps the object clean.
-   */
+  // ==========================================================
+  // REMOVE EMPTY VALUES
+  // ==========================================================
 
   Object.keys(
     currentFilters
@@ -829,15 +1145,16 @@ function applyFilters(): void {
   );
 
 
-  /*
-   * When search/filter changes,
-   * always start from page 1.
-   */
+  // ==========================================================
+  // RESET PAGE
+  // ==========================================================
 
   currentMatchesPage = 1;
 
 
-  void renderMatches(1);
+  void renderMatches(
+    1
+  );
 
 }
 
@@ -852,7 +1169,9 @@ function clearFilters(): void {
 
   currentMatchesPage = 1;
 
-  void renderMatches(1);
+  void renderMatches(
+    1
+  );
 
 }
 
@@ -862,7 +1181,6 @@ function clearFilters(): void {
 // ============================================================
 
 function setupMatchesEvents(): void {
-
 
   // ==========================================================
   // ADD
@@ -1001,7 +1319,9 @@ function setupMatchesEvents(): void {
             }
 
 
-            await renderEditMatchForm(id);
+            await renderEditMatchForm(
+              id
+            );
 
           }
         );
@@ -1040,7 +1360,9 @@ function setupMatchesEvents(): void {
             }
 
 
-            await handleDeleteMatch(id);
+            await handleDeleteMatch(
+              id
+            );
 
           }
         );
@@ -1260,7 +1582,9 @@ function renderPagination(): string {
     pages.push(1);
 
 
-    // Near beginning
+    // ========================================================
+    // NEAR BEGINNING
+    // ========================================================
 
     if (
       currentPage <= 4
@@ -1282,7 +1606,9 @@ function renderPagination(): string {
     }
 
 
-    // Middle
+    // ========================================================
+    // MIDDLE
+    // ========================================================
 
     else if (
       currentPage >= 5 &&
@@ -1316,7 +1642,9 @@ function renderPagination(): string {
     }
 
 
-    // Near end
+    // ========================================================
+    // NEAR END
+    // ========================================================
 
     else {
 
@@ -1495,10 +1823,8 @@ function renderAddMatchForm(): void {
         );
 
 
-        /*
-         * New match gets latest ID,
-         * so go to page 1.
-         */
+        // New match gets latest ID,
+        // so go to page 1.
 
         currentMatchesPage = 1;
 
@@ -1662,7 +1988,6 @@ function renderMatchForm(
               name="fullname"
               type="text"
               required
-
               value="${escapeAttribute(
                 match?.fullname ?? ""
               )}"
@@ -1681,7 +2006,6 @@ function renderMatchForm(
               id="firstname"
               name="firstname"
               type="text"
-
               value="${escapeAttribute(
                 match?.firstname ?? ""
               )}"
@@ -1700,7 +2024,6 @@ function renderMatchForm(
               id="middlename"
               name="middlename"
               type="text"
-
               value="${escapeAttribute(
                 match?.middlename ?? ""
               )}"
@@ -1719,7 +2042,6 @@ function renderMatchForm(
               id="lastname"
               name="lastname"
               type="text"
-
               value="${escapeAttribute(
                 match?.lastname ?? ""
               )}"
@@ -1738,7 +2060,6 @@ function renderMatchForm(
               id="ancestralsurname"
               name="ancestralsurname"
               type="text"
-
               value="${escapeAttribute(
                 match?.ancestralsurname ?? ""
               )}"
@@ -1776,7 +2097,6 @@ function renderMatchForm(
               id="ydnahaplogroup"
               name="ydnahaplogroup"
               type="text"
-
               value="${escapeAttribute(
                 match?.ydnahaplogroup ?? ""
               )}"
@@ -1795,7 +2115,6 @@ function renderMatchForm(
               id="ydnasubclade"
               name="ydnasubclade"
               type="text"
-
               value="${escapeAttribute(
                 match?.ydnasubclade ?? ""
               )}"
@@ -1814,7 +2133,6 @@ function renderMatchForm(
               id="mtdna"
               name="mtdna"
               type="text"
-
               value="${escapeAttribute(
                 match?.mtdna ?? ""
               )}"
@@ -1852,7 +2170,6 @@ function renderMatchForm(
               id="pays"
               name="pays"
               type="text"
-
               value="${escapeAttribute(
                 match?.pays ?? ""
               )}"
@@ -1871,7 +2188,6 @@ function renderMatchForm(
               id="region"
               name="region"
               type="text"
-
               value="${escapeAttribute(
                 match?.region ?? ""
               )}"
@@ -1890,7 +2206,6 @@ function renderMatchForm(
               id="province"
               name="province"
               type="text"
-
               value="${escapeAttribute(
                 match?.province ?? ""
               )}"
@@ -1909,7 +2224,6 @@ function renderMatchForm(
               id="commun"
               name="commun"
               type="text"
-
               value="${escapeAttribute(
                 match?.commun ?? ""
               )}"
@@ -1928,7 +2242,6 @@ function renderMatchForm(
               id="tribe"
               name="tribe"
               type="text"
-
               value="${escapeAttribute(
                 match?.tribe ?? ""
               )}"
@@ -1982,13 +2295,11 @@ function renderMatchForm(
           type="submit"
           class="primary-button"
         >
-
           ${
             isEdit
               ? "Update Match"
               : "Create Match"
           }
-
         </button>
 
 
@@ -2257,11 +2568,9 @@ async function handleDeleteMatch(
     );
 
 
-    /*
-     * If we deleted the only record
-     * on the current page,
-     * go to previous page.
-     */
+    // If we deleted the only record
+    // on the current page,
+    // go to previous page.
 
     if (
       matches.length === 1 &&
@@ -2301,6 +2610,34 @@ async function handleDeleteMatch(
 // NAVIGATION
 // ============================================================
 
+function activateNavigation(
+  page: string
+): void {
+
+  const navItems =
+    document.querySelectorAll<HTMLButtonElement>(
+      ".nav-item"
+    );
+
+
+  navItems.forEach(
+    (nav) => {
+
+      nav.classList.toggle(
+        "active",
+        nav.dataset.page === page
+      );
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// SETUP NAVIGATION
+// ============================================================
+
 function setupNavigation(): void {
 
   const navItems =
@@ -2327,23 +2664,12 @@ function setupNavigation(): void {
           }
 
 
-          // Remove active
+          // ==================================================
+          // ACTIVE NAVIGATION
+          // ==================================================
 
-          navItems.forEach(
-            (nav) => {
-
-              nav.classList.remove(
-                "active"
-              );
-
-            }
-          );
-
-
-          // Add active
-
-          item.classList.add(
-            "active"
+          activateNavigation(
+            page
           );
 
 

@@ -1,29 +1,50 @@
 import type { Match } from "../types/match";
 
+
 // ============================================================
 // API CONFIG
 // ============================================================
 
-const API_URL = "http://localhost:3000/matches";
+const API_URL =
+  "http://localhost:3000/matches";
 
 
 // ============================================================
 // TYPES
 // ============================================================
 
+
+// ============================================================
+// PAGINATION
+// ============================================================
+
 export interface Pagination {
+
   page: number;
+
   limit: number;
+
   total: number;
+
   totalPages: number;
+
   hasNextPage: boolean;
+
   hasPreviousPage: boolean;
+
 }
 
 
+// ============================================================
+// PAGINATED MATCHES
+// ============================================================
+
 export interface PaginatedMatches {
+
   data: Match[];
+
   pagination: Pagination;
+
 }
 
 
@@ -48,6 +69,35 @@ export interface MatchFilters {
   mtdna?: string;
 
   tribe?: string;
+
+}
+
+
+// ============================================================
+// DASHBOARD STATISTICS
+// ============================================================
+
+export interface MatchStats {
+
+  total: number;
+
+  today: number;
+
+  thisWeek: number;
+
+  thisMonth: number;
+
+}
+
+
+// ============================================================
+// RECENT MATCHES
+// ============================================================
+
+export interface RecentMatchesResponse {
+
+  data: Match[];
+
 }
 
 
@@ -88,7 +138,9 @@ export async function getMatches(
     new URLSearchParams();
 
 
-  // Pagination
+  // ==========================================================
+  // PAGINATION
+  // ==========================================================
 
   params.set(
     "page",
@@ -278,7 +330,218 @@ export async function getMatches(
 
 
 // ============================================================
+// GET /matches/stats
+//
+// Dashboard statistics
+//
+// Example:
+//
+// GET http://localhost:3000/matches/stats
+//
+// Expected response:
+//
+// {
+//   "total": 61414,
+//   "today": 10,
+//   "thisWeek": 85,
+//   "thisMonth": 320
+// }
+// ============================================================
+
+export async function getMatchStats(): Promise<MatchStats> {
+
+
+  // ==========================================================
+  // REQUEST
+  // ==========================================================
+
+  const response =
+    await fetch(
+      `${API_URL}/stats`
+    );
+
+
+  // ==========================================================
+  // ERROR
+  // ==========================================================
+
+  if (!response.ok) {
+
+    const error =
+      await response
+        .json()
+        .catch(() => null);
+
+
+    throw new Error(
+      error?.error ||
+      "Failed to fetch match statistics"
+    );
+
+  }
+
+
+  // ==========================================================
+  // RESPONSE
+  // ==========================================================
+
+  const result =
+    await response.json();
+
+
+  // ==========================================================
+  // VALIDATE / NORMALIZE
+  // ==========================================================
+
+  return {
+
+    total:
+      Number(
+        result.total ?? 0
+      ),
+
+    today:
+      Number(
+        result.today ?? 0
+      ),
+
+    thisWeek:
+      Number(
+        result.thisWeek ?? 0
+      ),
+
+    thisMonth:
+      Number(
+        result.thisMonth ?? 0
+      ),
+
+  };
+
+}
+
+
+// ============================================================
+// GET /matches/recent
+//
+// Get recently added matches
+//
+// Example:
+//
+// GET http://localhost:3000/matches/recent?limit=10
+//
+// Expected response:
+//
+// {
+//   "data": [
+//     {
+//       "id": 100,
+//       "fullname": "John Doe",
+//       ...
+//     }
+//   ]
+// }
+// ============================================================
+
+export async function getRecentMatches(
+  limit: number = 10
+): Promise<Match[]> {
+
+
+  // ==========================================================
+  // SAFE LIMIT
+  // ==========================================================
+
+  const safeLimit =
+    Math.min(
+      Math.max(
+        Math.floor(limit),
+        1
+      ),
+      100
+    );
+
+
+  // ==========================================================
+  // REQUEST
+  // ==========================================================
+
+  const response =
+    await fetch(
+      `${API_URL}/recent?limit=${safeLimit}`
+    );
+
+
+  // ==========================================================
+  // ERROR
+  // ==========================================================
+
+  if (!response.ok) {
+
+    const error =
+      await response
+        .json()
+        .catch(() => null);
+
+
+    throw new Error(
+      error?.error ||
+      "Failed to fetch recent matches"
+    );
+
+  }
+
+
+  // ==========================================================
+  // RESPONSE
+  // ==========================================================
+
+  const result =
+    await response.json();
+
+
+  // ==========================================================
+  // RESPONSE FORMAT
+  //
+  // Expected:
+  //
+  // {
+  //   data: [...]
+  // }
+  //
+  // But we also support:
+  //
+  // [...]
+  // ==========================================================
+
+  if (
+    Array.isArray(result)
+  ) {
+
+    return result;
+
+  }
+
+
+  if (
+    result &&
+    Array.isArray(
+      result.data
+    )
+  ) {
+
+    return result.data;
+
+  }
+
+
+  return [];
+
+}
+
+
+// ============================================================
 // GET /matches/:id
+//
 // Get one match
 // ============================================================
 
@@ -286,11 +549,20 @@ export async function getMatchById(
   id: number
 ): Promise<Match> {
 
+
+  // ==========================================================
+  // REQUEST
+  // ==========================================================
+
   const response =
     await fetch(
       `${API_URL}/${id}`
     );
 
+
+  // ==========================================================
+  // ERROR
+  // ==========================================================
 
   if (!response.ok) {
 
@@ -319,6 +591,10 @@ export async function getMatchById(
   }
 
 
+  // ==========================================================
+  // RESPONSE
+  // ==========================================================
+
   return response.json();
 
 }
@@ -326,6 +602,7 @@ export async function getMatchById(
 
 // ============================================================
 // POST /matches
+//
 // Create a new match
 // ============================================================
 
@@ -338,11 +615,17 @@ export async function createMatch(
   >
 ): Promise<Match> {
 
+
+  // ==========================================================
+  // REQUEST
+  // ==========================================================
+
   const response =
     await fetch(
       API_URL,
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           "Content-Type":
@@ -350,10 +633,17 @@ export async function createMatch(
         },
 
         body:
-          JSON.stringify(data)
+          JSON.stringify(
+            data
+          )
+
       }
     );
 
+
+  // ==========================================================
+  // ERROR
+  // ==========================================================
 
   if (!response.ok) {
 
@@ -371,6 +661,10 @@ export async function createMatch(
   }
 
 
+  // ==========================================================
+  // RESPONSE
+  // ==========================================================
+
   return response.json();
 
 }
@@ -378,6 +672,7 @@ export async function createMatch(
 
 // ============================================================
 // PUT /matches/:id
+//
 // Update a match
 // ============================================================
 
@@ -391,11 +686,17 @@ export async function updateMatch(
   >
 ): Promise<Match> {
 
+
+  // ==========================================================
+  // REQUEST
+  // ==========================================================
+
   const response =
     await fetch(
       `${API_URL}/${id}`,
       {
-        method: "PUT",
+        method:
+          "PUT",
 
         headers: {
           "Content-Type":
@@ -403,10 +704,17 @@ export async function updateMatch(
         },
 
         body:
-          JSON.stringify(data)
+          JSON.stringify(
+            data
+          )
+
       }
     );
 
+
+  // ==========================================================
+  // ERROR
+  // ==========================================================
 
   if (!response.ok) {
 
@@ -435,6 +743,10 @@ export async function updateMatch(
   }
 
 
+  // ==========================================================
+  // RESPONSE
+  // ==========================================================
+
   return response.json();
 
 }
@@ -442,6 +754,7 @@ export async function updateMatch(
 
 // ============================================================
 // DELETE /matches/:id
+//
 // Delete a match
 // ============================================================
 
@@ -449,14 +762,24 @@ export async function deleteMatch(
   id: number
 ): Promise<void> {
 
+
+  // ==========================================================
+  // REQUEST
+  // ==========================================================
+
   const response =
     await fetch(
       `${API_URL}/${id}`,
       {
-        method: "DELETE"
+        method:
+          "DELETE"
       }
     );
 
+
+  // ==========================================================
+  // ERROR
+  // ==========================================================
 
   if (!response.ok) {
 
