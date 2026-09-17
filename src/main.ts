@@ -1331,6 +1331,88 @@ function setupMatchesEvents(): void {
 
 
   // ==========================================================
+  // VIEW
+  // ==========================================================
+
+  document
+    .querySelectorAll<HTMLButtonElement>(
+      ".view-match-button"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          async () => {
+
+            const id =
+              Number(
+                button.dataset.id
+              );
+
+
+            if (
+              !Number.isInteger(id)
+            ) {
+
+              return;
+
+            }
+
+
+            await showMatchDetails(
+              id
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  // ==========================================================
+  // EXPORT
+  // ==========================================================
+
+  document
+    .querySelectorAll<HTMLButtonElement>(
+      ".export-match-button"
+    )
+    .forEach(
+      (button) => {
+
+        button.addEventListener(
+          "click",
+          async () => {
+
+            const id =
+              Number(
+                button.dataset.id
+              );
+
+
+            if (
+              !Number.isInteger(id)
+            ) {
+
+              return;
+
+            }
+
+
+            await exportMatchImage(
+              id
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  // ==========================================================
   // DELETE
   // ==========================================================
 
@@ -1508,6 +1590,22 @@ function renderMatchRow(
 
 
           <button
+            class="action-button view-match-button"
+            data-id="${match.id}"
+          >
+            Consulter
+          </button>
+
+
+          <button
+            class="action-button export-match-button"
+            data-id="${match.id}"
+          >
+            Export
+          </button>
+
+
+          <button
             class="action-button delete-match-button"
             data-id="${match.id}"
           >
@@ -1521,6 +1619,364 @@ function renderMatchRow(
     </tr>
 
   `;
+
+}
+
+
+// ============================================================
+// MATCH DETAILS MODAL
+// ============================================================
+
+async function showMatchDetails(
+  id: number
+): Promise<void> {
+
+  try {
+
+    const match =
+      await getMatchById(
+        id
+      );
+
+
+    const modal =
+      document.createElement(
+        "div"
+      );
+
+
+    modal.className =
+      "match-modal-backdrop";
+
+    modal.innerHTML =
+      renderMatchDetailsModal(
+        match
+      );
+
+
+    document.body.appendChild(
+      modal
+    );
+
+
+    const close = (): void => {
+
+      modal.remove();
+
+    };
+
+
+    modal
+      .querySelector(
+        ".match-modal-close"
+      )
+      ?.addEventListener(
+        "click",
+        close
+      );
+
+
+    modal.addEventListener(
+      "click",
+      (event) => {
+
+        if (
+          event.target === modal
+        ) {
+
+          close();
+
+        }
+
+      }
+    );
+
+
+    document.addEventListener(
+      "keydown",
+      function handleEscape(event) {
+
+        if (
+          event.key === "Escape"
+        ) {
+
+          close();
+          document.removeEventListener(
+            "keydown",
+            handleEscape
+          );
+
+        }
+
+      }
+    );
+
+  } catch (error) {
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Failed to load match details"
+    );
+
+  }
+
+}
+
+
+function renderMatchDetailsModal(
+  match: Match
+): string {
+
+  const fields: Array<[string, string | null]> = [
+    ["Match ID", String(match.id)],
+    ["Full Name", match.fullname],
+    ["First Name", match.firstname],
+    ["Middle Name", match.middlename],
+    ["Last Name", match.lastname],
+    ["Ancestral Surname", match.ancestralsurname],
+    ["Y-DNA Haplogroup", match.ydnahaplogroup],
+    ["Y-DNA Subclade", match.ydnasubclade],
+    ["mtDNA", match.mtdna],
+    ["Country", match.pays],
+    ["Region", match.region],
+    ["Province", match.province],
+    ["Commune", match.commun],
+    ["Tribe", match.tribe],
+    ["Created", match.createdAt ? formatDate(match.createdAt) : null],
+    ["Updated", match.updatedAt ? formatDate(match.updatedAt) : null],
+  ];
+
+
+  return `
+
+    <div class="match-modal" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle">
+
+      <div class="match-modal-header">
+        <div>
+          <span class="match-modal-kicker">DNA MATCH</span>
+          <h2 id="matchModalTitle">${escapeHtml(match.fullname)}</h2>
+        </div>
+
+        <button class="match-modal-close" type="button" aria-label="Close details">&times;</button>
+      </div>
+
+      <div class="match-detail-grid">
+        ${fields
+          .map(
+            ([label, value]) => `
+              <div class="match-detail-item">
+                <span>${label}</span>
+                <strong>${escapeHtml(value ?? "Not provided")}</strong>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+
+      <div class="match-detail-notes">
+        <span>Details</span>
+        <p>${escapeHtml(match.details ?? "Not provided")}</p>
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// ============================================================
+// MATCH IMAGE EXPORT
+// ============================================================
+
+async function exportMatchImage(
+  id: number
+): Promise<void> {
+
+  try {
+
+    const match =
+      await getMatchById(
+        id
+      );
+
+
+    const canvas =
+      document.createElement(
+        "canvas"
+      );
+
+    canvas.width = 1600;
+    canvas.height = 1000;
+
+
+    const context =
+      canvas.getContext(
+        "2d"
+      );
+
+
+    if (!context) {
+
+      throw new Error(
+        "Image export is not supported"
+      );
+
+    }
+
+
+    drawMatchTree(
+      context,
+      match
+    );
+
+
+    const link =
+      document.createElement(
+        "a"
+      );
+
+    link.download =
+      `dna-match-${match.id}-${match.fullname
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-|-$/g, "")
+        .toLowerCase()}.png`;
+
+    link.href =
+      canvas.toDataURL(
+        "image/png"
+      );
+
+    link.click();
+
+  } catch (error) {
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Failed to export match image"
+    );
+
+  }
+
+}
+
+
+function drawMatchTree(
+  context: CanvasRenderingContext2D,
+  match: Match
+): void {
+
+  const ink = "#172335";
+  const muted = "#718096";
+  const teal = "#0d8f8a";
+  const soft = "#e4f5f3";
+  const line = "#d2dde8";
+
+
+  context.fillStyle = "#f6f9fc";
+  context.fillRect(0, 0, 1600, 1000);
+  context.fillStyle = "#ffffff";
+  context.fillRect(70, 60, 1460, 880);
+
+  context.fillStyle = teal;
+  context.fillRect(70, 60, 1460, 12);
+
+  context.font = "700 26px Arial";
+  context.fillStyle = ink;
+  context.fillText("DNA MATCHES", 120, 135);
+  context.font = "16px Arial";
+  context.fillStyle = muted;
+  context.fillText("Family Tree DNA Profile", 120, 165);
+
+  context.font = "700 42px Arial";
+  context.fillStyle = ink;
+  context.fillText(match.fullname, 120, 260);
+  context.font = "18px Arial";
+  context.fillStyle = muted;
+  context.fillText(`Match #${match.id}`, 120, 295);
+
+  context.strokeStyle = line;
+  context.lineWidth = 4;
+  context.beginPath();
+  context.moveTo(800, 320);
+  context.lineTo(800, 390);
+  context.moveTo(460, 390);
+  context.lineTo(1140, 390);
+  context.moveTo(460, 390);
+  context.lineTo(460, 430);
+  context.moveTo(800, 390);
+  context.lineTo(800, 430);
+  context.moveTo(1140, 390);
+  context.lineTo(1140, 430);
+  context.stroke();
+
+  const drawCard = (
+    x: number,
+    title: string,
+    values: string[]
+  ): void => {
+
+    context.fillStyle = soft;
+    context.fillRect(x, 430, 300, 230);
+    context.strokeStyle = line;
+    context.lineWidth = 2;
+    context.strokeRect(x, 430, 300, 230);
+    context.fillStyle = teal;
+    context.fillRect(x, 430, 300, 8);
+    context.font = "700 20px Arial";
+    context.fillStyle = ink;
+    context.fillText(title, x + 24, 480);
+    context.font = "17px Arial";
+    values.forEach(
+      (value, index) => {
+        context.fillStyle = index === 0 ? ink : muted;
+        context.fillText(value, x + 24, 525 + index * 34);
+      }
+    );
+
+  };
+
+
+  drawCard(
+    310,
+    "Y-DNA LINE",
+    [
+      match.ydnahaplogroup || "Haplogroup not provided",
+      match.ydnasubclade || "Subclade not provided",
+    ]
+  );
+
+  drawCard(
+    650,
+    "mtDNA LINE",
+    [
+      match.mtdna || "mtDNA not provided",
+      "Maternal DNA profile",
+    ]
+  );
+
+  drawCard(
+    990,
+    "ORIGIN",
+    [
+      [match.pays, match.region].filter(Boolean).join(", ") || "Location not provided",
+      [match.province, match.commun].filter(Boolean).join(", ") || "Locality not provided",
+    ]
+  );
+
+  context.font = "700 18px Arial";
+  context.fillStyle = muted;
+  context.fillText("Family details", 120, 755);
+  context.font = "18px Arial";
+  context.fillStyle = ink;
+  const details = match.details || "No additional details provided";
+  context.fillText(details.slice(0, 115), 120, 795);
+
+  context.font = "14px Arial";
+  context.fillStyle = muted;
+  context.fillText("Exported from DNA MATCHES", 120, 885);
 
 }
 
