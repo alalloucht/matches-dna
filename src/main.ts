@@ -52,6 +52,113 @@ const pageDescription =
 const pageContent =
   document.getElementById("pageContent");
 
+type Language = "en" | "ar";
+
+let currentLanguage: Language =
+  localStorage.getItem("dna-matches-language") === "ar"
+    ? "ar"
+    : "en";
+
+const translations: Record<string, string> = {
+  "DNA Management": "إدارة الحمض النووي",
+  "Dashboard": "لوحة التحكم",
+  "Matches": "المطابقات",
+  "Overview of your DNA matches": "نظرة عامة على مطابقات الحمض النووي",
+  "Loading...": "جار التحميل...",
+  "Overview of your DNA matches database.": "نظرة عامة على قاعدة بيانات مطابقات الحمض النووي.",
+  "Total Matches": "إجمالي المطابقات",
+  "Added Today": "أضيفت اليوم",
+  "Added This Week": "أضيفت هذا الأسبوع",
+  "Added This Month": "أضيفت هذا الشهر",
+  "Database": "قاعدة البيانات",
+  "MySQL Connected": "متصل بـ MySQL",
+  "Recent Matches": "أحدث المطابقات",
+  "Latest matches added to the database.": "آخر المطابقات المضافة إلى قاعدة البيانات.",
+  "View All Matches": "عرض كل المطابقات",
+  "No recent matches found.": "لم يتم العثور على مطابقات حديثة.",
+  "No matches found.": "لم يتم العثور على مطابقات.",
+  "Search, filter and manage your DNA matches": "ابحث وصفِّ وأدر مطابقات الحمض النووي",
+  "DNA Matches": "مطابقات الحمض النووي",
+  "+ Add Match": "+ إضافة مطابقة",
+  "Search": "بحث",
+  "Search name, haplogroup, mtDNA...": "ابحث بالاسم أو المجموعة الفردانية أو mtDNA...",
+  "Country": "البلد",
+  "Region": "الجهة",
+  "Province": "الإقليم",
+  "Y-DNA Haplogroup": "المجموعة الفردانية Y-DNA",
+  "Y-DNA Subclade": "السلالة الفرعية Y-DNA",
+  "Tribe": "القبيلة",
+  "Apply Filters": "تطبيق الفلاتر",
+  "Clear Filters": "مسح الفلاتر",
+  "Add Match": "إضافة مطابقة",
+  "Create a new DNA match": "إنشاء مطابقة جديدة للحمض النووي",
+  "Edit Match": "تعديل المطابقة",
+  "Update DNA match information": "تحديث معلومات مطابقة الحمض النووي",
+  "Save": "حفظ",
+  "Cancel": "إلغاء",
+  "Delete": "حذف",
+  "Details": "التفاصيل",
+  "Not provided": "غير متوفر",
+  "Match ID": "معرّف المطابقة",
+  "Full Name": "الاسم الكامل",
+  "First Name": "الاسم الأول",
+  "Middle Name": "الاسم الأوسط",
+  "Last Name": "اسم العائلة",
+  "Ancestral Surname": "اسم العائلة الأصلي",
+  "mtDNA": "mtDNA",
+  "Commune": "الجماعة",
+  "Created": "تاريخ الإنشاء",
+  "Updated": "تاريخ التحديث",
+};
+
+const arabicToEnglish = Object.fromEntries(
+  Object.entries(translations).map(([english, arabic]) => [arabic, english])
+);
+
+function translateText(value: string): string {
+  const englishValue = arabicToEnglish[value] ?? value;
+  return currentLanguage === "ar"
+    ? translations[englishValue] ?? englishValue
+    : englishValue;
+}
+
+function applyLanguage(): void {
+  document.documentElement.lang = currentLanguage;
+  document.documentElement.dir = currentLanguage === "ar" ? "rtl" : "ltr";
+
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const textNodes: Text[] = [];
+  let node = walker.nextNode();
+
+  while (node) {
+    if (!node.parentElement?.closest("script, style")) {
+      textNodes.push(node as Text);
+    }
+    node = walker.nextNode();
+  }
+
+  textNodes.forEach((textNode) => {
+    const value = textNode.textContent?.trim() ?? "";
+    const translated = translateText(value);
+    if (value && value !== translated) {
+      textNode.textContent = textNode.textContent?.replace(value, translated) ?? "";
+    }
+  });
+
+  document.querySelectorAll<HTMLInputElement>("[placeholder]").forEach((input) => {
+    input.placeholder = translateText(input.getAttribute("placeholder") ?? "");
+  });
+
+  const languageToggle = document.getElementById("languageToggle");
+  if (languageToggle) {
+    languageToggle.textContent = currentLanguage === "ar" ? "English" : "العربية";
+    languageToggle.setAttribute(
+      "aria-label",
+      currentLanguage === "ar" ? "Switch to English" : "التبديل إلى العربية"
+    );
+  }
+}
+
 
 // ============================================================
 // HTML HELPERS
@@ -153,6 +260,8 @@ function showLoading(): void {
       Loading...
     </div>
   `;
+
+  applyLanguage();
 }
 
 
@@ -3101,6 +3210,23 @@ function setupNavigation(): void {
       ".nav-item"
     );
 
+  document.getElementById("languageToggle")?.addEventListener("click", () => {
+    currentLanguage = currentLanguage === "ar" ? "en" : "ar";
+    localStorage.setItem("dna-matches-language", currentLanguage);
+    applyLanguage();
+
+    const activePage =
+      document.querySelector<HTMLButtonElement>(".nav-item.active")?.dataset.page;
+
+    if (activePage === "matches") {
+      void renderMatches(currentMatchesPage);
+    } else {
+      void renderDashboard();
+    }
+  });
+
+  applyLanguage();
+
 
   navItems.forEach(
     (item) => {
@@ -3183,6 +3309,11 @@ async function init(): Promise<void> {
 
 
   setupNavigation();
+
+  if (pageContent) {
+    const languageObserver = new MutationObserver(() => applyLanguage());
+    languageObserver.observe(pageContent, { childList: true, subtree: true });
+  }
 
 
   await renderDashboard();
